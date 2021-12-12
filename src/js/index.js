@@ -1,3 +1,4 @@
-debug;
-const name = "this is test"
-console.log(name)
+const name = "welcome to redmaster course";
+console.log("**********");
+console.log(name);
+console.log("**********");

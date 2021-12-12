@@ -31,12 +31,12 @@ const image = {
   output: "./build/src/assets/image",
 };
 const scss = {
-  input: "./src/scss/**/*.scss",
+  input: "./src/scss/index.scss",
   output: "build/src/css",
-  new_name: "style.css",
+  new_name: "style.min.css",
 };
 const javascript = {
-  input: "./src/js/**/*.js",
+  input: ["./src/js/**/*.js"],
   output: "./build/src/js",
   new_name: "index.min.js",
 };
@@ -45,19 +45,20 @@ const boot_js = {
     "./node_modules/bootstrap/dist/js/bootstrap.bundle.js",
     "./node_modules/bootstrap/js/dist/button.js",
   ],
-  output: "./src/js",
+  output: "./build/src/js",
+  new_name: "bootstrap.min.js",
 };
-const css = {
-  input: "./src/css/**/*.css",
+const module_css = {
+  input: "./src/scss/module/module.scss",
   output: "./build/src/css",
-  new_name: "style.min.css",
+  new_name: "module.min.css",
 };
 // delete task file build
 gulp.task("delete", async function () {
   await del("./build");
 });
 // html compile task
-gulp.task("htmlCompile", async function () {
+gulp.task("html-Compile", async function () {
   gulp
     .src(html.input)
     .pipe(htmlmin({ collapseWhitespace: true }))
@@ -84,14 +85,24 @@ gulp.task("compile-js", async function () {
 });
 // task for javascript bootsrap
 gulp.task("compile-javascript-bootstrap", async function () {
-  gulp.src(boot_js.input).pipe(gulp.dest(boot_js.output));
+  gulp
+    .src(boot_js.input)
+    .pipe(concat("bootstrap.js"))
+    .pipe(
+      babel({
+        presets: ["@babel/preset-env"],
+      })
+    )
+    .pipe(uglify())
+    .pipe(rename(boot_js.new_name))
+    .pipe(gulp.dest(boot_js.output));
 });
 // task compile font
 gulp.task("compile-font", async function () {
   gulp.src(font.input).pipe(gulp.dest(font.output));
 });
-// task minifyImage
-gulp.task("minifyImage", async function () {
+// task minify-image
+gulp.task("minify-image", async function () {
   gulp
     .src(image.input)
     .pipe(minImage())
@@ -110,15 +121,23 @@ gulp.task("comile-scss", async function () {
     )
     .pipe(rename(scss.new_name))
     .pipe(size())
-    .pipe(gulp.dest("./src/css"));
+    .pipe(concat(scss.new_name))
+    .pipe(cleanCss({ compatibility: "ie8" }))
+    .pipe(gulp.dest(scss.output));
 });
 // task for css style in file css
-gulp.task("compile-css", async function () {
+gulp.task("compile-module-css", async function () {
   gulp
-    .src(css.input)
-    .pipe(concat(css.new_name))
+    .src(module_css.input)
+    .pipe(sass().on("error", sass.logError))
+    .pipe(
+      autoPrefixer({
+        cascade: false,
+      })
+    )
+    .pipe(concat(module_css.new_name))
     .pipe(cleanCss({ compatibility: "ie8" }))
-    .pipe(gulp.dest(css.output));
+    .pipe(gulp.dest(module_css.output));
 });
 // task browser sync
 gulp.task("browser-sync", async function () {
@@ -132,10 +151,10 @@ gulp.task("browser-sync", async function () {
 gulp.task("watcher", async function () {
   gulp
     .watch(html.input)
-    .on("change", gulp.series(["htmlCompile", browserSync.reload]));
+    .on("change", gulp.series(["html-Compile", browserSync.reload]));
   gulp
     .watch(image.input)
-    .on("change", gulp.series(["minifyImage", browserSync.reload]));
+    .on("change", gulp.series(["minify-image", browserSync.reload]));
   gulp
     .watch(scss.input)
     .on("change", gulp.series(["comile-scss", browserSync.reload]));
@@ -149,8 +168,8 @@ gulp.task("watcher", async function () {
     .watch(font.input)
     .on("change", gulp.series(["compile-font", browserSync.reload]));
   gulp
-    .watch(css.input)
-    .on("change", gulp.series(["compile-css", browserSync.reload]));
+    .watch(module_css.input)
+    .on("change", gulp.series(["compile-module-css", browserSync.reload]));
   gulp
     .watch(boot_js.input)
     .on(
@@ -160,18 +179,18 @@ gulp.task("watcher", async function () {
 });
 // gulp default task
 gulp.task(
-  "default",
+  "dev",
   gulp.series(
     "delete",
     gulp.parallel([
-      "htmlCompile",
-      "minifyImage",
+      "html-Compile",
+      "minify-image",
+      "compile-module-css",
       "comile-scss",
       "compile-javascript-bootstrap",
       "compile-js",
       "video-compile",
       "compile-font",
-      "compile-css",
     ]),
     "browser-sync",
     "watcher"
