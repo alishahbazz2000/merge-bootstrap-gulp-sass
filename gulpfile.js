@@ -36,7 +36,7 @@ const scss = {
   new_name: "style.min.css",
 };
 const javascript = {
-  input: ["./src/js/**/*.js"],
+  input: "./src/js/**/*.js",
   output: "./build/src/js",
   new_name: "index.min.js",
 };
@@ -52,6 +52,11 @@ const module_css = {
   input: "./src/scss/module/module.scss",
   output: "./build/src/css",
   new_name: "module.min.css",
+};
+const all_css = {
+  input: ["./src/scss/module/module.scss", "./src/scss/index.scss"],
+  output: "./build/src/css",
+  new_name: "style.min.css",
 };
 // delete task file build
 gulp.task("delete", async function () {
@@ -125,7 +130,7 @@ gulp.task("comile-scss", async function () {
     .pipe(cleanCss({ compatibility: "ie8" }))
     .pipe(gulp.dest(scss.output));
 });
-// task for css style in file css
+// task for css style in file scss
 gulp.task("compile-module-css", async function () {
   gulp
     .src(module_css.input)
@@ -138,6 +143,21 @@ gulp.task("compile-module-css", async function () {
     .pipe(concat(module_css.new_name))
     .pipe(cleanCss({ compatibility: "ie8" }))
     .pipe(gulp.dest(module_css.output));
+});
+// task for compile all style for production
+gulp.task("compile-all-css", async function () {
+  gulp
+    .src(all_css.input)
+    .pipe(sass().on("error", sass.logError))
+    .pipe(
+      autoPrefixer({
+        cascade: false,
+      })
+    )
+    .pipe(size())
+    .pipe(concat(all_css.new_name))
+    .pipe(cleanCss({ compatibility: "ie8" }))
+    .pipe(gulp.dest(all_css.output));
 });
 // task browser sync
 gulp.task("browser-sync", async function () {
@@ -177,7 +197,7 @@ gulp.task("watcher", async function () {
       gulp.series(["compile-javascript-bootstrap", browserSync.reload])
     );
 });
-// gulp default task
+// gulp dev task
 gulp.task(
   "dev",
   gulp.series(
@@ -189,6 +209,24 @@ gulp.task(
       "comile-scss",
       "compile-javascript-bootstrap",
       "compile-js",
+      "video-compile",
+      "compile-font",
+    ]),
+    "browser-sync",
+    "watcher"
+  )
+);
+// gulp production task
+gulp.task(
+  "prod",
+  gulp.series(
+    "delete",
+    gulp.parallel([
+      "html-Compile",
+      "minify-image",
+      "compile-javascript-bootstrap",
+      "compile-js",
+      "compile-all-css",
       "video-compile",
       "compile-font",
     ]),
